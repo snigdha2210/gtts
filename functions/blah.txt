@@ -1,0 +1,45 @@
+filename search algo improvement
+firebase experiment
+endpoint function name change
+dont hardcode url
+
+
+get download url to react app
+if file exists, then return url
+figure out a good way to names files - a function which one on one maps text to a file name and also keeps the () - ! , ' . 
+capital is diff from small 
+
+
+// const fileContents = new Buffer(response.audioContent, 'base64');
+               
+                //   let voiceRef = storageRef.child(`${myWordFile}`).putString(fileContents, fb.storage.StringFormat.DATA_URL);
+                //   voiceRef.on(fb.storage.TaskEvent.STATE_CHANGED, (snapshot) => {
+                //     console.log("uploading");
+                //   }, (e) => {
+                //     console.error(e);
+                //     console.log(JSON.stringify(e, null, 2));
+                //   }, () => {
+                //     var downloadURL = voiceRef.snapshot.downloadURL;
+                //     console.log(downloadURL);
+                //   });
+                
+                // const sendBlob=new Blob([fileContents], {type: 'audio/mpeg'});
+                // await bucket.upload(sendBlob,{
+                //   destination: myWordFile,
+                // }).then(() => {
+                //     console.log("File written to Cloud Storage.");
+                //     return;
+                //   })
+                //   .catch((error) => {
+                //     console.error(error);
+                //   });
+
+
+                // return await file.save(response.audioContent, options)
+                // .then(() => {
+                //   console.log("File written to Firebase Storage.")
+                //   return;
+                // })
+                // .catch((error) => {
+                //   console.error(error);
+                // });
