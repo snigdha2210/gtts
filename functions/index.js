@@ -1,5 +1,8 @@
 
 const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+// const firebase = require('firebase');
+admin.initializeApp(functions.config().firebase);
 
 const convertTextToFileName=(word)=>{
   let myWordFile = word.replace(/ /g,"_"); 
@@ -9,152 +12,64 @@ const convertTextToFileName=(word)=>{
 };
 
 async function uploadSpeechFile(speechBase64Array,fileName,googleCloudFolderPath){
-  // copied from https://cloud.google.com/blog/products/gcp/use-google-cloud-client-libraries-to-store-files-save-entities-and-log-data
-  const {Storage} = require('@google-cloud/storage');
-  const storage = new Storage();
-  const bucket = storage.bucket('turnkey-charter-317009.appspot.com');
-console.log('in the upload function');
-  var stream = require('stream');
-  var bufferStream = new stream.PassThrough();
-  bufferStream.end(Buffer.from(speechBase64Array.audioContent, 'base64'));
+  return new Promise((resolve, reject) => {
+    // copied from https://cloud.google.com/blog/products/gcp/use-google-cloud-client-libraries-to-store-files-save-entities-and-log-data
+  var bucket = admin.storage().bucket();
+  // var storage=admin.storage();
+  const options = { metadata: { contentType: "audio/mp3" } }
 
   var file = bucket.file(`${googleCloudFolderPath}/${fileName}`);
-  //Pipe the 'bufferStream' into a 'file.createWriteStream' method.
-  bufferStream.pipe(file.createWriteStream({
-      metadata: {
-        contentType: 'audio/mp3',
-        metadata: {
-          source: 'Google Text-to-Speech',
-        }
-      },
-      public: true
-    }))
-    .on('error', function(err) {
-      console.error(err);
-    })
-    .on('finish', function() {
-      // The file upload is complete.
-      console.log('file uploaded');
+  //  const ref = firebase.storage().ref().child(`${googleCloudFolderPath}/${fileName}`);
+  // const storageRef = admin.storage().ref();
+console.log('in the upload function');
+var returnUrl='new file uploaded';
 
-      file.exists().then(function(data) {
-        console.log("File in database exists ");
-      });
-        
-      const config = {
-        action: 'read',
-        expires: '01-01-2026',
-      };
-        
-      // Get the link to that file
-      file.getSignedUrl(config, function(err, url) {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        console.log("Url is : " + url);
-        return url;
-      });
-    });
-    //   file
-    // .exists()
-    // .then((exists) => {
-    //       if (exists[0]) {
-    //         console.log("File exists");
-    //         return exists[0];
-    //       } else {
-    //         console.log("File does not exist");
-    //         return null;
-    //       }
-    //    })
-    // });
-    
-    // const config = {
-    //   action: 'read',
-    // };
-      
-    // // Get the link to that file
-    // file.getSignedUrl(config, function(err, url) {
-    //   if (err) {
-    //     console.error(err);
-    //     return;
-    //   }
-        
-    //   // The file is now available to
-    //   // read from this URL
-    //   console.log("Url is : " + url);
-    //   return url;
-    // });
+var message = speechBase64Array.audioContent;
+file.save(message, options).then(stuff => {
+  console.log(stuff);
+  file.getSignedUrl({
+    action: 'read',
+    expires: '01-01-2500'
+  })
+})
+.then(urls => {
+const url = urls[0];
+console.log(`Image url = ${url}`)
+returnUrl=url;
+resolve(returnUrl);
+})
+.catch(err => {
+  console.log(`Unable to upload MP3 ${err}`)
+  reject(err);
+})
+}).catch(err=>{
+  console.error(err);
+
+// resolve(returnUrl);
+
+
+})
 }
 
 async function checkFileNameInDirectory(fileName, googleCloudFolderPath,bucket){
+  return new Promise((resolve, reject) => {
+    var file = bucket.file(`${googleCloudFolderPath}/${fileName}`);
+    file.exists().then((exists) => {
+            if (exists[0]) {
+              console.log("File exists");
+              console.log(exists[0]);
+              resolve(1);
+            } else {
+              console.log("File does not exist");
+              resolve(0);          
+            }
+         }).catch((err)=>{
+           reject(err);
+           console.error(err);
+         })
+  } )
+ 
   
-  var file = bucket.file(`${googleCloudFolderPath}/${fileName}`);
-  file
-    .exists()
-    .then((exists) => {
-          if (exists[0]) {
-            console.log("File exists");
-            return 1;
-          } else {
-            console.log("File does not exist");
-            return 0;
-            
-          }
-       })
-    
-  // const config = {
-  //   action: 'read',
-  //   // A timestamp when this link will expire
-  //   expires: '01-01-2026',
-  // };
-    
-  // // Get the link to that file
-  // fileRef.getSignedUrl(config, function(err, url) {
-  //   if (err) {
-  //     console.error(err);
-  //     return;
-  //   }
-      
-    // The file is now available to
-    // read from this URL
-    // console.log("Url is : " + url);
-  // });
-
-  // fetch(`https://storage.googleapis.com/turnkey-charter-317009.appspot.com/${googleCloudFolderPath}/${fileName}`, { method: 'HEAD' })
-  //   .then(res => {
-  //       if (res.ok) {
-  //         check=1;
-  //           console.log('file exists.');
-  //           return check;
-  //       } else {
-  //           return check;
-  //       }
-  //   }).catch(err => console.log('Error:', err));
-
-  // var http = new XMLHttpRequest();
-
-  // http.open('HEAD', `https://storage.googleapis.com/turnkey-charter-317009.appspot.com/${googleCloudFolderPath}/${fileName}`, false);
-  // http.send();
-  // var check=0;
-  //   check= (http.status !== 404);
-  // return check;
-
-
-  // Lists files in the bucket
-  // const [files] = await bucket.getFiles({ prefix: googleCloudFolderPath});
-  // var obj={
-  //   url:'',
-  //   check:0
-  // };
-  // const index = files.findIndex(x => x.name ===fileName);
-  // if(index!==(-1)){
-  //   obj.url=`https://storage.googleapis.com/turnkey-charter-317009.appspot.com/${files[index].name}`;
-  //   obj.check=1;
-  //   return obj; 
-  // }else{
-  //   return obj;
-  // }
-
 }
 
 async function textToSpeech(text){
@@ -170,58 +85,71 @@ async function textToSpeech(text){
   };
 
   // copied from https://cloud.google.com/text-to-speech/docs/quickstart-client-libraries#client-libraries-usage-nodejs
-  const [response] = await client.synthesizeSpeech(request);
-    console.log('textConverted');
-    return [response];
-
+  return client.synthesizeSpeech(request)
+  // .then(([response])=>{
+    // console.log('textConverted');
+    // console.log(response);
+    // return response;
+  // });
+    
   
 }
 
 async function GetReadyTextToSpeech(textToConvert) 
     {
-                
-                var myWordFile = convertTextToFileName(textToConvert); //returns name of the file
-                const {Storage} = require('@google-cloud/storage');
-
-                // Creates a client
-                const storage = new Storage();
-                const bucket = storage.bucket('turnkey-charter-317009.appspot.com');
-                  // Lists files in the bucket
-                  // const [files] = await bucket.getFiles();
-                
-                  // const index = files.findIndex(x => x.name ===myWordFile);
-                  // if(index!==(-1)){
-                  //   console.log(index+' duplicate');
-                  //   return `https://storage.googleapis.com/turnkey-charter-317009.appspot.com/${files[index].name}`; 
-                  // }
-                // copied from https://cloud.google.com/blog/products/gcp/use-google-cloud-client-libraries-to-store-files-save-entities-and-log-data
-                // const {Storage} = require('@google-cloud/storage');
-                // const storage = new Storage();
-                // const bucket = storage.bucket('turnkey-charter-317009.appspot.com');
-                
-                var check= checkFileNameInDirectory(myWordFile,'',bucket).then(()=>{
-                  console.log(check);
-                if(check===1){
-                  console.log('duplicate');
-                  return 'duplicate';
-                }
+      return new Promise((resolve, reject) => {
+        var myWordFile = convertTextToFileName(textToConvert); //returns name of the file
+                var bucket = admin.storage().bucket();
+                 var url='';
+                checkFileNameInDirectory(myWordFile,'',bucket).then((exists)=>{
+                  console.log('after checkFileNameInDirectory function');
+                  console.log(exists);
+                  if(exists){
+                    console.log('duplicate');
+                    url='duplicate';
+                    resolve(url);
+                  }else{
+                    textToSpeech(textToConvert).then(([response])=>{
+                      uploadSpeechFile(response,myWordFile,'').then((returnUrl)=>{
+                        url=returnUrl;
+                        console.log("url: ",url);
+                        resolve(url);
+                      }).catch((err)=>{
+                        reject(err);
+                        console.error(err);
+                    })
+                      
+                    }).catch((err)=>{
+                      reject(err);
+                      console.error(err);
+                  })
+                  }                      
+                }).catch((err)=>{
+                    console.error(err);
                 })
+      } )
                 
-                               
-  
-                  // const [response] = await client.synthesizeSpeech(request);
-                  const [response]= await textToSpeech(textToConvert);
-                  const url=uploadSpeechFile(response,myWordFile,''); //upload file to google cloud storage
-                  return url;                
+                             
     } 
 
     exports.GetReadyTextToSpeechCloudFuntion = functions.https.onCall((change, context) => {
-     
-          if (change.text !== undefined) 
-          {
-            const url = GetReadyTextToSpeech(change.text);
-            return url;
-          } 
-
+      return textToSpeech(change.text);
+  //     return new Promise((resolve, reject) => {
+  //     if (change.text !== undefined){
+  //     try {
+  //           textToSpeech(change.text).then(([response])=>{
+  //             console.log(response);
+  //           resolve(response);
+  //           }).catch ((error) =>{
+  //             console.log(error);
+  //             reject(error);
+  //           });
+            
+  //     } catch (error) {
+  //       console.log(error);
+  //       reject( 'tts didnt work');
+  //     }
+  //   }  
+  // })
 
     });
